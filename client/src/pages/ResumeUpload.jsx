@@ -4,9 +4,11 @@ import axios from "axios";
 function ResumeUpload() {
   const [file, setFile] = useState(null);
   const [resumes, setResumes] = useState([]);
+  const [analysis, setAnalysis] = useState(null);
 
   useEffect(() => {
     fetchResumes();
+    fetchAnalysis();
   }, []);
 
   const fetchResumes = async () => {
@@ -23,6 +25,25 @@ function ResumeUpload() {
       );
 
       setResumes(response.data.resumes);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchAnalysis = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(
+        "http://localhost:5000/api/resume/analysis",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setAnalysis(response.data.analysis);
     } catch (error) {
       console.error(error);
     }
@@ -55,11 +76,41 @@ function ResumeUpload() {
 
       alert(response.data.message);
       fetchResumes();
+      fetchAnalysis();
     } catch (error) {
       console.error(error);
 
       alert("Upload Failed");
     }
+  };
+
+  const renderAnalysisItems = (items, emptyMessage) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return <p className="text-gray-500">{emptyMessage}</p>;
+    }
+
+    return (
+      <ul className="list-disc pl-5 space-y-2">
+        {items.map((item, index) => {
+          if (typeof item === "string") {
+            return <li key={`${item}-${index}`}>{item}</li>;
+          }
+
+          const title = item.title || item.name || item.role || "Item";
+          const description =
+            item.description || item.summary || item.details || "";
+
+          return (
+            <li key={`${title}-${index}`}>
+              <span className="font-medium">{title}</span>
+              {description && (
+                <p className="text-gray-500 mt-1">{description}</p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
   };
 
   return (
@@ -102,6 +153,37 @@ function ResumeUpload() {
                 </a>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-2xl font-bold mb-4">Resume Analysis</h2>
+
+        {!analysis ? (
+          <p>No analysis available yet.</p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-bold mb-3">Skills</h3>
+
+              {renderAnalysisItems(analysis.skills, "No skills found.")}
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-bold mb-3">Projects</h3>
+
+              {renderAnalysisItems(analysis.projects, "No projects found.")}
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-bold mb-3">Experience</h3>
+
+              {renderAnalysisItems(
+                analysis.experience,
+                "No experience found.",
+              )}
+            </div>
           </div>
         )}
       </div>
